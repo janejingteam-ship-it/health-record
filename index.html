@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6f9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>我的健康记录</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:#f4f6f9;color:#16233a;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:14px 14px calc(30px + env(safe-area-inset-bottom))}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:4px 2px 12px}
+  .topbar h1{margin:0;font-size:17px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:6px}
+  .topbar .leaf{font-size:15px}
+  .topbar .today{font-size:12px;color:#93a1b4;font-weight:500}
+
+  /* ---------- 卡片 ---------- */
+  .card{
+    background:#fff;border:1px solid #eef3f9;border-radius:20px;
+    padding:16px;margin-bottom:14px;
+    box-shadow:0 6px 20px rgba(26,84,158,.06),0 1px 2px rgba(26,84,158,.04);
+  }
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+  .card-head h2{margin:0;font-size:15.5px;font-weight:800;display:flex;align-items:center;gap:7px}
+  .card-head .note{font-size:11.5px;color:#9aa7b8;background:#f5f8fc;border-radius:999px;padding:3px 9px}
+
+  /* ---------- 用户栏 ---------- */
+  .profile{display:flex;align-items:center;gap:12px;padding:14px 16px}
+  .avatar{
+    width:54px;height:54px;flex:none;border-radius:50%;
+    background:linear-gradient(135deg,#eaf5ff,#d5e9ff);
+    border:1px solid #dceafd;display:grid;place-items:center;font-size:26px;
+    box-shadow:inset 0 1px 3px rgba(255,255,255,.9);
+  }
+  .profile-info{flex:1;min-width:0}
+  .nick-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .nick-name{font-size:17px;font-weight:800;letter-spacing:.2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .edit-btn{
+    font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;
+    background:#eff6ff;color:#1b76ec;border:1px solid #dcebfd;cursor:pointer;
+    display:inline-flex;align-items:center;gap:3px;font-family:inherit;
+  }
+  .edit-btn:active{transform:scale(.96)}
+  .profile-sub{font-size:12px;color:#93a1b4;margin-top:2px}
+
+  /* ---------- 饮水 ---------- */
+  .water-main{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+  .ring-wrap{position:relative;width:118px;height:118px;flex:none}
+  .ring{width:100%;height:100%;display:block}
+  .ring-track{fill:none;stroke:#e9f2fc;stroke-width:12}
+  .ring-fill{
+    fill:none;stroke:url(#ringGrad);stroke-width:12;stroke-linecap:round;
+    stroke-dasharray:326.73;stroke-dashoffset:326.73;
+    transform:rotate(-90deg);transform-origin:60px 60px;
+    transition:stroke-dashoffset .55s cubic-bezier(.4,0,.2,1);
+  }
+  .ring-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .ring-pct{font-size:22px;font-weight:800;color:#1b76ec;letter-spacing:-.5px;line-height:1.1}
+  .ring-label{font-size:10.5px;color:#93a1b4;margin-top:2px}
+  .water-stats{flex:1;min-width:0}
+  .stat-total{display:flex;align-items:baseline;gap:5px;line-height:1}
+  .stat-total b{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .stat-total span{font-size:12.5px;color:#93a1b4;font-weight:600}
+  .stat-lines{margin-top:8px;font-size:12.5px;color:#6b7a90;line-height:1.75}
+  .stat-lines em{font-style:normal;color:#1b76ec;font-weight:700}
+
+  .primary-btn{
+    width:100%;height:48px;border:none;border-radius:14px;
+    background:linear-gradient(135deg,#54b9ff,#1b76ec);color:#fff;
+    font-size:15px;font-weight:700;font-family:inherit;letter-spacing:.3px;
+    box-shadow:0 6px 16px rgba(27,118,236,.26);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    transition:transform .12s ease,box-shadow .2s;
+  }
+  .primary-btn:active{transform:scale(.985);box-shadow:0 3px 10px rgba(27,118,236,.22)}
+
+  /* ---------- 记录列表 ---------- */
+  .list{margin-top:10px}
+  .rec{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed #f0f4fa}
+  .rec:last-child{border-bottom:none}
+  .rec-main{flex:1;min-width:0;font-size:13.5px;color:#3e4e66;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .rec-main b{font-weight:800;font-size:14.5px;color:#16233a}
+  .rec-body{flex:1;min-width:0}
+  .rec-val{font-size:13.5px;color:#45566e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec-val b{font-weight:800;font-size:14.5px;color:#16233a;letter-spacing:-.2px}
+  .rec-meta{font-size:11px;color:#a9b6c7;margin-top:1px;letter-spacing:.2px}
+  .rec-time{font-size:11.5px;color:#a9b6c7;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+  .del{
+    width:26px;height:26px;flex:none;border-radius:50%;border:none;background:#f4f7fb;
+    color:#9aa7b8;font-size:15px;line-height:1;cursor:pointer;font-family:inherit;
+    display:grid;place-items:center;transition:background .15s,color .15s;
+  }
+  .del:active,.del:hover{background:#ffecec;color:#f2544b}
+  .empty{font-size:13px;color:#a9b6c7;text-align:center;padding:14px 0 6px}
+
+  /* ---------- 运动 ---------- */
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tab{
+    flex:1;padding:9px 0;border-radius:12px;border:1.5px solid transparent;
+    background:#f4f7fb;color:#7a889b;font-family:inherit;font-size:12.5px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+    transition:all .18s ease;
+  }
+  .tab .dot{width:6px;height:6px;border-radius:50%;background:var(--c);opacity:.45;transition:opacity .18s}
+  .tab.active{background:var(--t);color:var(--c);border-color:var(--c);box-shadow:0 4px 12px color-mix(in srgb,var(--c) 18%,transparent)}
+  .tab.active .dot{opacity:1}
+
+  .fields{display:flex;gap:10px}
+  .field{flex:1;min-width:0}
+  .field.full{flex:1}
+  .field-label{display:block;font-size:11.5px;color:#8d9bad;font-weight:600;margin-bottom:6px;padding-left:2px}
+  .input-wrap{
+    display:flex;align-items:center;gap:6px;background:#f7fafd;border:1px solid #e7eff9;
+    border-radius:12px;padding:0 11px;transition:border-color .18s,background .18s;
+  }
+  .input-wrap:focus-within{border-color:#b9d9fb;background:#fff;box-shadow:0 0 0 3px rgba(84,185,255,.12)}
+  .input-wrap input{
+    flex:1;min-width:0;width:100%;border:none;background:transparent;outline:none;
+    font-family:inherit;font-size:16px;font-weight:700;color:#16233a;padding:11px 0;
+  }
+  .input-wrap input::placeholder{color:#c3cedd;font-weight:600}
+  .input-wrap input::-webkit-outer-spin-button,.input-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .input-wrap input[type=number]{-moz-appearance:textfield}
+  .suffix{font-size:12px;color:#93a1b4;font-weight:600;flex:none}
+
+  .chips{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .chip{
+    font-size:12px;font-weight:600;padding:6px 11px;border-radius:10px;
+    background:#f4f7fb;border:1px solid #eaf1f9;color:#5b6b82;cursor:pointer;font-family:inherit;
+  }
+  .chip:active{background:#e9f4ff;border-color:#cfe6ff;color:#1b76ec}
+
+  .sec-title{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin:18px 0 4px;padding-top:14px;border-top:1px solid #f1f5fa;
+  }
+  .sec-title h3{margin:0;font-size:13.5px;font-weight:800;color:#24344d}
+  .sec-title .sub{font-size:11.5px;color:#a9b6c7}
+
+  .grp{padding:12px 0 2px}
+  .grp + .grp{border-top:1px dashed #f0f4fa}
+  .grp-head{display:flex;flex-direction:column;gap:3px;margin-bottom:4px}
+  .grp-name{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:800;color:var(--c)}
+  .grp-name .dot{width:7px;height:7px;border-radius:50%;background:var(--c)}
+  .grp-total{font-size:11.5px;color:#7a889b;font-weight:600;line-height:1.5}
+
+  /* ---------- 记录卡预览 ---------- */
+  .canvas-box{border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(26,84,158,.10)}
+  #cardCanvas{display:block;width:100%;height:auto}
+  .preview-tip{font-size:11.5px;color:#a9b6c7;text-align:center;margin:10px 0 12px;line-height:1.6}
+
+  /* ---------- 弹层 ---------- */
+  .overlay{
+    position:fixed;inset:0;z-index:60;display:none;
+    background:rgba(12,22,38,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    overflow:auto;
+  }
+  .overlay.show{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #savedImg{max-width:100%;max-height:64vh;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.45);background:#fff}
+  .ov-hint{color:#e6eef8;font-size:12.5px;margin:12px 0 14px;text-align:center;line-height:1.6}
+  .ov-btns{display:flex;gap:10px;width:100%;max-width:340px}
+  .ov-btns .primary-btn{height:46px;font-size:14px}
+  .ghost-btn{
+    flex:1;height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.28);
+    background:rgba(255,255,255,.1);color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  .ov-btns a.primary-btn{text-decoration:none;flex:1}
+
+  /* 昵称弹窗 */
+  .dialog{
+    width:100%;max-width:340px;background:#fff;border-radius:18px;padding:20px 18px 16px;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .dialog h3{margin:0 0 4px;font-size:16px;font-weight:800;text-align:center}
+  .dialog p{margin:0 0 14px;font-size:12px;color:#93a1b4;text-align:center}
+  .dialog .input-wrap{padding:0 12px}
+  .dialog .input-wrap input{font-size:16px;padding:12px 0;font-weight:700}
+  .dialog-btns{display:flex;gap:10px;margin-top:16px}
+  .dialog-btns .primary-btn{height:44px;font-size:14px;flex:1}
+  .dialog-btns .ghost-btn{flex:0 0 92px;height:44px;border:1px solid #e7eff9;background:#f7fafd;color:#6b7a90}
+
+  /* toast */
+  .toast{
+    position:fixed;left:50%;bottom:calc(34px + env(safe-area-inset-bottom));transform:translate(-50%,12px);
+    background:rgba(22,35,58,.92);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:all .25s ease;z-index:80;white-space:nowrap;max-width:90vw;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .pop{animation:pop .35s ease}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1><span class="leaf">🌱</span>我的健康记录</h1>
+    <div class="today" id="todayText">—</div>
+  </div>
+
+  <!-- 用户 -->
+  <div class="card profile">
+    <div class="avatar">🌱</div>
+    <div class="profile-info">
+      <div class="nick-row">
+        <div class="nick-name" id="nickName">健康记录员</div>
+        <button class="edit-btn" id="editNick">✏️ 修改昵称</button>
+      </div>
+      <div class="profile-sub">今天也要好好喝水、动一动</div>
+    </div>
+  </div>
+
+  <!-- 饮水 -->
+  <div class="card">
+    <div class="card-head">
+      <h2>💧 饮水记录</h2>
+      <span class="note">每杯 250ml</span>
+    </div>
+    <div class="water-main">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#5cc2ff"/>
+              <stop offset="100%" stop-color="#1b76ec"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="60" cy="60" r="52"/>
+          <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-pct" id="waterPct">0%</div>
+          <div class="ring-label">已完成</div>
+        </div>
+      </div>
+      <div class="water-stats">
+        <div class="stat-total"><b id="waterTotal">0</b><span>/ 2000 毫升</span></div>
+        <div class="stat-lines">
+          <div>今日合计 <em id="waterTotal2">0</em> 毫升</div>
+          <div id="waterLeft">还差 2000 毫升</div>
+        </div>
+      </div>
+    </div>
+    <button class="primary-btn" id="addWater">＋ 喝一杯（250ml）</button>
+    <div class="list" id="waterList"></div>
+  </div>
+
+  <!-- 运动 -->
+  <div class="card">
+    <div class="card-head">
+      <h2>🏃 运动记录</h2>
+      <span class="note">选择项目后填写</span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="formBox"></div>
+    <div style="margin-top:14px">
+      <button class="primary-btn" id="addExercise">记录运动</button>
+    </div>
+
+    <div class="sec-title">
+      <h3>今日运动</h3>
+      <span class="sub" id="exSub"></span>
+    </div>
+    <div id="exSummary"></div>
+  </div>
+
+  <!-- 记录卡 -->
+  <div class="card">
+    <div class="card-head">
+      <h2>📸 今日记录卡</h2>
+      <span class="note">自动生成</span>
+    </div>
+    <div class="canvas-box">
+      <canvas id="cardCanvas"></canvas>
+    </div>
+    <div class="preview-tip">保存后即为与预览完全一致的高清 PNG<br>手机端可在弹窗中「长按图片」保存到相册</div>
+    <button class="primary-btn" id="saveCard">保存图片</button>
+  </div>
+
+</div>
+
+<!-- 昵称弹窗 -->
+<div class="overlay" id="nickOverlay">
+  <div class="dialog">
+    <h3>修改昵称</h3>
+    <p>最多 12 个字，保存在本机浏览器</p>
+    <div class="input-wrap">
+      <input type="text" id="nickInput" maxlength="12" placeholder="请输入昵称" autocomplete="off">
+    </div>
+    <div class="dialog-btns">
+      <button class="ghost-btn" id="nickCancel">取消</button>
+      <button class="primary-btn" id="nickSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 图片弹窗 -->
+<div class="overlay" id="imgOverlay">
+  <img id="savedImg" alt="今日记录卡">
+  <div class="ov-hint">手机上长按上方图片 → 保存到相册</div>
+  <div class="ov-btns">
+    <a class="primary-btn" id="downloadBtn" download="我的健康记录.png">下载 PNG</a>
+    <button class="ghost-btn" id="imgClose">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 基础配置 ================= */
+const STORE_KEY = 'my-health-record-v1';
+const GOAL = 2000;   // 固定饮水目标
+const CUP  = 250;    // 每次记录
+const RING_C = 2 * Math.PI * 52;
+
+const EXERCISES = [
+  { id:'run',     name:'跑步', color:'#FF7A45', tint:'#FFF3ED', icon:'🏃', mode:'distance' },
+  { id:'walk',    name:'散步', color:'#2FB98A', tint:'#EAF9F3', icon:'🚶', mode:'distance' },
+  { id:'bike',    name:'骑行', color:'#4C7CFE', tint:'#EDF2FF', icon:'🚴', mode:'distance' },
+  { id:'stretch', name:'拉伸', color:'#A46BFF', tint:'#F5EEFF', icon:'🤸', mode:'time' },
+  { id:'yoga',    name:'瑜伽', color:'#FF6F91', tint:'#FFEFF4', icon:'🧘', mode:'time' }
+];
+const EXMAP = {};
+EXERCISES.forEach(e => EXMAP[e.id] = e);
+
+/* ================= 状态 ================= */
+let state = { nickname:'健康记录员', days:{} };
+let currentType = 'run';
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function dayKey(d = new Date()){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+function todayKey(){ return dayKey(new Date()); }
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    if(!p || typeof p !== 'object') return;
+    if(typeof p.nickname === 'string' && p.nickname.trim()) state.nickname = p.nickname.trim();
+    if(p.days && typeof p.days === 'object') state.days = p.days;
+  }catch(e){ /* 忽略损坏数据 */ }
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function todayData(){
+  const k = todayKey();
+  if(!state.days[k] || typeof state.days[k] !== 'object') state.days[k] = { water:[], exercise:[] };
+  const d = state.days[k];
+  if(!Array.isArray(d.water)) d.water = [];
+  if(!Array.isArray(d.exercise)) d.exercise = [];
+  return d;
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ================= 工具 ================= */
+function fmtNum(n){
+  if(!isFinite(n)) return '0';
+  const r = Math.round(n * 100) / 100;
+  return String(r);
+}
+function timeText(ts){
+  const d = new Date(ts);
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+/* 配速：总分钟 / 总公里 → m'ss" */
+function paceText(min, km){
+  if(!(km > 0) || !(min > 0)) return '—';
+  let sec = Math.round(min * 60 / km);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + "'" + pad2(s) + '"';
+}
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 1600);
+}
+function $(id){ return document.getElementById(id); }
+
+/* ================= 顶部日期 ================= */
+function renderToday(){
+  const d = new Date();
+  const week = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+  $('todayText').textContent = (d.getMonth()+1) + '月' + d.getDate() + '日 ' + week;
+}
+
+/* ================= 昵称 ================= */
+function renderNick(){
+  $('nickName').textContent = state.nickname || '健康记录员';
+}
+
+/* ================= 饮水 ================= */
+function waterTotal(){
+  return todayData().water.reduce((s,r) => s + (Number(r.ml) || 0), 0);
+}
+function renderWater(){
+  const d = todayData();
+  const total = waterTotal();
+  const pct = Math.round(total / GOAL * 100);
+
+  $('waterTotal').textContent = total;
+  $('waterTotal2').textContent = total;
+  $('waterPct').textContent = pct + '%';
+
+  const left = GOAL - total;
+  $('waterLeft').innerHTML = left > 0
+    ? '还差 <em>' + left + '</em> 毫升'
+    : (left === 0 ? '<em>刚好达标，今天很棒</em>' : '已超额 <em>' + (-left) + '</em> 毫升');
+
+  const cap = Math.max(0, Math.min(pct, 100));
+  const ring = $('ringFill');
+  ring.style.strokeDashoffset = String(RING_C * (1 - cap / 100));
+  ring.style.opacity = pct > 0 ? '1' : '0';
+
+  // 记录列表（新的在上）
+  const box = $('waterList');
+  if(!d.water.length){
+    box.innerHTML = '<div class="empty">今天还没喝水，点上面的按钮记录第一杯 💧</div>';
+  }else{
+    const list = d.water.slice().reverse();
+    box.innerHTML = list.map(r =>
+      '<div class="rec">' +
+        '<div class="rec-main"><b>' + (Number(r.ml)||0) + '</b> 毫升' +
+          '<span class="rec-time">' + timeText(r.t) + '</span></div>' +
+        '<button class="del" data-kind="water" data-id="' + r.id + '" aria-label="撤销">×</button>' +
+      '</div>'
+    ).join('');
+  }
+}
+
+/* ================= 运动：分组统计 ================= */
+function groupsOfToday(){
+  const d = todayData();
+  return EXERCISES.map(ex => {
+    const recs = d.exercise.filter(r => r.type === ex.id);
+    if(!recs.length) return null;
+    const km = recs.reduce((s,r) => s + (Number(r.km) || 0), 0);
+    const min = recs.reduce((s,r) => s + (Number(r.min) || 0), 0);
+    return { ex, recs, km, min, count: recs.length };
+  }).filter(Boolean);
+}
+
+/* ================= 运动：Tab ================= */
+function renderTabs(){
+  $('tabs').innerHTML = EXERCISES.map(ex =>
+    '<button class="tab' + (ex.id === currentType ? ' active' : '') + '" data-type="' + ex.id + '" ' +
+      'style="--c:' + ex.color + ';--t:' + ex.tint + '">' +
+      '<span class="dot"></span>' + ex.name +
+    '</button>'
+  ).join('');
+}
+function renderForm(){
+  const ex = EXMAP[currentType];
+  const box = $('formBox');
+  if(ex.mode === 'distance'){
+    box.innerHTML =
+      '<div class="fields">' +
+        '<label class="field"><span class="field-label">距离（公里）</span>' +
+          '<div class="input-wrap"><input type="number" id="inpKm" inputmode="decimal" step="0.01" min="0" placeholder="0.00"><span class="suffix">公里</span></div>' +
+        '</label>' +
+        '<label class="field"><span class="field-label">时长（分钟）</span>' +
+          '<div class="input-wrap"><input type="number" id="inpMin" inputmode="decimal" step="1" min="0" placeholder="0"><span class="suffix">分钟</span></div>' +
+        '</label>' +
+      '</div>' +
+      '<div class="chips">' +
+        '<button class="chip" data-km="2">2 公里</button>' +
+        '<button class="chip" data-km="5">5 公里</button>' +
+        '<button class="chip" data-min="30">30 分钟</button>' +
+        '<button class="chip" data-min="60">60 分钟</button>' +
+      '</div>';
+  }else{
+    box.innerHTML =
+      '<div class="fields">' +
+        '<label class="field full"><span class="field-label">时长（分钟）</span>' +
+          '<div class="input-wrap"><input type="number" id="inpMin" inputmode="decimal" step="1" min="0" placeholder="0"><span class="suffix">分钟</span></div>' +
+        '</label>' +
+      '</div>' +
+      '<div class="chips">' +
+        '<button class="chip" data-min="10">10 分钟</button>' +
+        '<button class="chip" data-min="20">20 分钟</button>' +
+        '<button class="chip" data-min="30">30 分钟</button>' +
+        '<button class="chip" data-min="45">45 分钟</button>' +
+      '</div>';
+  }
+}
+
+/* ================= 运动：今日汇总 ================= */
+function renderExercise(){
+  const groups = groupsOfToday();
+  const box = $('exSummary');
+  const sub = $('exSub');
+
+  if(!groups.length){
+    box.innerHTML = '<div class="empty">今日暂无运动记录</div>';
+    sub.textContent = '';
+    return;
+  }
+
+  const allMin = groups.reduce((s,g) => s + g.min, 0);
+  sub.textContent = '共 ' + fmtNum(allMin) + ' 分钟 · ' + groups.length + ' 个项目';
+
+  box.innerHTML = groups.map(g => {
+    // 顶部今日合计
+    let totalTxt;
+    if(g.ex.mode === 'distance'){
+      totalTxt = '今日合计 ' + fmtNum(g.km) + ' 公里 · ' + fmtNum(g.min) + ' 分钟';
+      if(g.ex.id === 'run'){
+        totalTxt += ' · 均配速 ' + paceText(g.min, g.km) + '/km';
+      }
+    }else{
+      totalTxt = '今日合计 ' + fmtNum(g.min) + ' 分钟 · ' + g.count + ' 次';
+    }
+
+    const items = g.recs.slice().reverse().map(r => {
+      const km = Number(r.km) || 0;
+      const min = Number(r.min) || 0;
+      const val = g.ex.mode === 'distance'
+        ? '<b>' + fmtNum(km) + '</b> 公里 · <b>' + fmtNum(min) + '</b> 分钟'
+        : '<b>' + fmtNum(min) + '</b> 分钟';
+      let meta = timeText(r.t);
+      if(g.ex.id === 'run') meta += ' · 配速 ' + paceText(min, km) + '/km';
+      return '<div class="rec">' +
+        '<div class="rec-body">' +
+          '<div class="rec-val">' + val + '</div>' +
+          '<div class="rec-meta">' + meta + '</div>' +
+        '</div>' +
+        '<button class="del" data-kind="exercise" data-id="' + r.id + '" aria-label="撤销">×</button>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="grp" style="--c:' + g.ex.color + '">' +
+      '<div class="grp-head">' +
+        '<div class="grp-name"><span class="dot"></span>' + g.ex.name + '</div>' +
+        '<div class="grp-total">' + totalTxt + '</div>' +
+      '</div>' +
+      items +
+    '</div>';
+  }).join('');
+}
+
+/* ================= 主渲染 ================= */
+function renderAll(){
+  renderToday();
+  renderNick();
+  renderWater();
+  renderTabs();
+  renderExercise();
+  drawCard();
+}
+
+/* ================= 交互：饮水 ================= */
+$('addWater').addEventListener('click', () => {
+  const d = todayData();
+  d.water.push({ id: uid(), ml: CUP, t: Date.now() });
+  save();
+  renderWater();
+  drawCard();
+  $('waterTotal').classList.remove('pop');
+  void $('waterTotal').offsetWidth;
+  $('waterTotal').classList.add('pop');
+  toast('已记录 +250 毫升');
+});
+
+/* ================= 交互：Tab / 表单 ================= */
+$('tabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab');
+  if(!btn) return;
+  currentType = btn.dataset.type;
+  renderTabs();
+  renderForm();
+  drawCard(); // 不影响，仅保持同步
+});
+
+$('formBox').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  if(chip.dataset.km){
+    const km = $('inpKm');
+    if(km) km.value = chip.dataset.km;
+  }
+  if(chip.dataset.min){
+    const min = $('inpMin');
+    if(min) min.value = chip.dataset.min;
+  }
+});
+
+/* ================= 交互：记录运动 ================= */
+$('addExercise').addEventListener('click', () => {
+  const ex = EXMAP[currentType];
+  const minEl = $('inpMin');
+  const kmEl = $('inpKm');
+  const min = minEl ? parseFloat(minEl.value) : 0;
+  const km = kmEl ? parseFloat(kmEl.value) : 0;
+
+  if(!min || min <= 0){
+    toast('请填写运动时长（分钟）');
+    if(minEl) minEl.focus();
+    return;
+  }
+  if(ex.mode === 'distance' && (!km || km <= 0)){
+    toast('请填写运动距离（公里）');
+    if(kmEl) kmEl.focus();
+    return;
+  }
+
+  const d = todayData();
+  d.exercise.push({
+    id: uid(),
+    type: ex.id,
+    km: ex.mode === 'distance' ? Math.round(km * 100) / 100 : 0,
+    min: Math.round(min * 10) / 10,
+    t: Date.now()
+  });
+  save();
+  renderExercise();
+  drawCard();
+  renderForm(); // 清空输入
+  toast('已记录 ' + ex.name + ' ' + fmtNum(min) + ' 分钟');
+});
+
+/* ================= 交互：撤销 ================= */
+document.body.addEventListener('click', (e) => {
+  const btn = e.target.closest('.del');
+  if(!btn) return;
+  const kind = btn.dataset.kind;
+  const id = btn.dataset.id;
+  const d = todayData();
+  if(kind === 'water'){
+    const i = d.water.findIndex(r => r.id === id);
+    if(i > -1){ d.water.splice(i,1); save(); renderWater(); drawCard(); toast('已撤销一杯饮水'); }
+  }else{
+    const i = d.exercise.findIndex(r => r.id === id);
+    if(i > -1){
+      const name = (EXMAP[d.exercise[i].type] || {}).name || '运动';
+      d.exercise.splice(i,1); save(); renderExercise(); drawCard();
+      toast('已撤销一条' + name + '记录');
+    }
+  }
+});
+
+/* ================= 交互：昵称 ================= */
+const nickOverlay = $('nickOverlay');
+$('editNick').addEventListener('click', () => {
+  $('nickInput').value = state.nickname || '';
+  nickOverlay.classList.add('show');
+  setTimeout(() => { $('nickInput').focus(); $('nickInput').select(); }, 60);
+});
+function closeNick(){ nickOverlay.classList.remove('show'); }
+$('nickCancel').addEventListener('click', closeNick);
+nickOverlay.addEventListener('click', (e) => { if(e.target === nickOverlay) closeNick(); });
+$('nickSave').addEventListener('click', () => {
+  const v = $('nickInput').value.trim();
+  if(!v){ toast('昵称不能为空'); return; }
+  state.nickname = v.slice(0,12);
+  save();
+  closeNick();
+  renderNick();
+  drawCard();
+  toast('昵称已更新');
+});
+$('nickInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') $('nickSave').click(); });
+
+/* ================= 记录卡绘制 ================= */
+const canvas = $('cardCanvas');
+const ctx = canvas.getContext('2d');
+const FONT = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif';
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+function rr(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function fitFont(c, text, maxW, size, weight, family){
+  let s = size;
+  do{
+    c.font = (weight || 400) + ' ' + s + 'px ' + (family || FONT);
+    if(c.measureText(text).width <= maxW || s <= 10) break;
+    s -= 0.5;
+  }while(s > 10);
+  return s;
+}
+
+function drawCard(){
+  const W = 620;
+  const d = todayData();
+  const total = d.water.reduce((s,r) => s + (Number(r.ml)||0), 0);
+  const pct = Math.round(total / GOAL * 100);
+  const capPct = Math.max(0, Math.min(pct, 100));
+  const groups = groupsOfToday();
+
+  // ---- 布局 ----
+  const PAD = 36;
+  const headerH = 152;
+  const waterTop = headerH + 30;          // 182
+  const waterBlockH = 168;
+  const dividerY = waterTop + waterBlockH + 4;
+  const exTitleY = dividerY + 34;
+  const rowsTop = exTitleY + 20;
+  const ROW_H = 46, ROW_GAP = 8;
+  const rowsCount = groups.length || 1;
+  const rowsH = groups.length
+    ? groups.length * ROW_H + (groups.length - 1) * ROW_GAP
+    : ROW_H;
+  const afterRows = rowsTop + rowsH;
+  const footDividerY = afterRows + 22;
+  const H = footDividerY + 46;
+
+  const dpr = 2;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = '100%';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // ---- 卡片底 ----
+  ctx.save();
+  rr(ctx, 0, 0, W, H, 28);
+  ctx.clip();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // ---- 头部渐变 ----
+  const g = ctx.createLinearGradient(0, 0, W * 0.85, headerH);
+  g.addColorStop(0, '#5cc2ff');
+  g.addColorStop(0.55, '#2f92f5');
+  g.addColorStop(1, '#1b76ec');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, headerH);
+
+  // 装饰圆
+  ctx.fillStyle = 'rgba(255,255,255,.10)';
+  ctx.beginPath(); ctx.arc(W - 40, 6, 96, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.08)';
+  ctx.beginPath(); ctx.arc(W - 150, 150, 70, 0, Math.PI * 2); ctx.fill();
+
+  // 头像
+  const ax = PAD + 33, ay = 68, ar = 32;
+  ctx.fillStyle = 'rgba(255,255,255,.94)';
+  ctx.beginPath(); ctx.arc(ax, ay, ar, 0, Math.PI * 2); ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '32px ' + EMOJI_FONT;
+  ctx.fillText('🌱', ax, ay + 2);
+
+  // 昵称
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const nick = state.nickname || '健康记录员';
+  fitFont(ctx, nick, W - (ax + ar + 20) - PAD - 90, 23, 700);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(nick, ax + ar + 18, 66);
+
+  // 日期
+  const now = new Date();
+  const week = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][now.getDay()];
+  const dateStr = now.getFullYear() + ' 年 ' + (now.getMonth()+1) + ' 月 ' + now.getDate() + ' 日 · ' + week;
+  ctx.font = '13.5px ' + FONT;
+  ctx.fillStyle = 'rgba(255,255,255,.86)';
+  ctx.fillText(dateStr, ax + ar + 20, 94);
+
+  // 右上角 tag
+  ctx.textAlign = 'right';
+  ctx.font = '12px ' + FONT;
+  ctx.fillStyle = 'rgba(255,255,255,.72)';
+  ctx.fillText('今日记录卡', W - PAD, 60);
+
+  // ---- 饮水区块 ----
+  const ringCx = PAD + 54, ringCy = waterTop + 72, ringR = 50, lw = 11;
+
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = '#eaf2fc';
+  ctx.beginPath(); ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2); ctx.stroke();
+
+  if(capPct > 0){
+    const start = -Math.PI / 2;
+    const end = start + Math.PI * 2 * (capPct / 100);
+    const rg = ctx.createLinearGradient(ringCx - ringR, ringCy - ringR, ringCx + ringR, ringCy + ringR);
+    rg.addColorStop(0, '#5cc2ff');
+    rg.addColorStop(1, '#1b76ec');
+    ctx.strokeStyle = rg;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(ringCx, ringCy, ringR, start, end); ctx.stroke();
+    ctx.lineCap = 'butt';
+  }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1b76ec';
+  ctx.font = '700 21px ' + FONT;
+  ctx.fillText(pct + '%', ringCx, ringCy - 8);
+  ctx.fillStyle = '#94a2b5';
+  ctx.font = '11px ' + FONT;
+  ctx.fillText('已完成', ringCx, ringCy + 14);
+
+  // 右侧数据
+  const x0 = ringCx + ringR + 34;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = '#8d9bad';
+  ctx.font = '600 13px ' + FONT;
+  ctx.fillText('饮水目标 ' + GOAL + ' 毫升', x0, waterTop + 32);
+
+  // 大数字
+  ctx.fillStyle = '#16233a';
+  ctx.font = '800 40px ' + FONT;
+  const numTxt = String(total);
+  ctx.fillText(numTxt, x0, waterTop + 82);
+  const nw = ctx.measureText(numTxt).width;
+  ctx.fillStyle = '#93a1b4';
+  ctx.font = '600 14px ' + FONT;
+  ctx.fillText('毫升', x0 + nw + 8, waterTop + 82);
+
+  // 状态文案
+  const left = GOAL - total;
+  let statusTxt = '已完成 ' + pct + '% · 还差 ' + Math.max(left, 0) + ' 毫升';
+  if(left < 0) statusTxt = '已完成 ' + pct + '% · 已超额 ' + (-left) + ' 毫升';
+  if(left === 0) statusTxt = '已完成 100% · 刚好达标';
+  ctx.fillStyle = '#5b6b82';
+  ctx.font = '14px ' + FONT;
+  ctx.fillText(statusTxt, x0, waterTop + 112);
+
+  // 进度条
+  const barX = x0, barY = waterTop + 128, barW = W - PAD - x0, barH = 8;
+  ctx.fillStyle = '#edf4fd';
+  rr(ctx, barX, barY, barW, barH, 4); ctx.fill();
+  if(capPct > 0){
+    const bw = Math.max(barH, barW * capPct / 100);
+    const bg = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+    bg.addColorStop(0, '#5cc2ff');
+    bg.addColorStop(1, '#1b76ec');
+    ctx.fillStyle = bg;
+    rr(ctx, barX, barY, bw, barH, 4); ctx.fill();
+  }
+
+  // 分隔线
+  ctx.strokeStyle = '#eff4fa';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, dividerY); ctx.lineTo(W - PAD, dividerY); ctx.stroke();
+
+  // ---- 运动区块标题 ----
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#24344d';
+  ctx.font = '800 16px ' + FONT;
+  ctx.fillText('今日运动', PAD, exTitleY);
+
+  const allMin = groups.reduce((s,g) => s + g.min, 0);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#a3b0c2';
+  ctx.font = '600 12.5px ' + FONT;
+  ctx.fillText(groups.length ? ('共 ' + fmtNum(allMin) + ' 分钟 · ' + groups.length + ' 项') : '', W - PAD, exTitleY);
+
+  // ---- 运动行 ----
+  if(!groups.length){
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#b6c2d1';
+    ctx.font = '14px ' + FONT;
+    ctx.fillText('今日暂无运动记录', PAD + 4, rowsTop + 28);
+  }else{
+    groups.forEach((g2, idx) => {
+      const y = rowsTop + idx * (ROW_H + ROW_GAP);
+      ctx.fillStyle = g2.ex.tint;
+      rr(ctx, PAD, y, W - PAD * 2, ROW_H, 14);
+      ctx.fill();
+
+      // 左侧色条
+      ctx.save();
+      rr(ctx, PAD, y, 5, ROW_H, 3);
+      ctx.fillStyle = g2.ex.color;
+      ctx.fill();
+
+      // 圆点
+      ctx.beginPath();
+      ctx.arc(PAD + 26, y + ROW_H / 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 项目名
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = g2.ex.color;
+      ctx.font = '800 15px ' + FONT;
+      ctx.fillText(g2.ex.name, PAD + 42, y + ROW_H / 2 + 1);
+
+      // 数据
+      const nameW = ctx.measureText(g2.ex.name).width;
+      let valTxt;
+      if(g2.ex.mode === 'distance'){
+        valTxt = fmtNum(g2.km) + ' 公里 · ' + fmtNum(g2.min) + ' 分钟';
+        if(g2.ex.id === 'run') valTxt += ' · 配速 ' + paceText(g2.min, g2.km) + '/km';
+      }else{
+        valTxt = fmtNum(g2.min) + ' 分钟 · ' + g2.count + ' 次';
+      }
+      const maxW = W - PAD - (PAD + 42 + nameW + 16);
+      ctx.textAlign = 'right';
+      fitFont(ctx, valTxt, maxW, 14.5, 600);
+      ctx.fillStyle = '#4c5c73';
+      ctx.fillText(valTxt, W - PAD - 16, y + ROW_H / 2 + 1);
+
+      ctx.textBaseline = 'alphabetic';
+    });
+  }
+
+  // ---- 页脚 ----
+  ctx.strokeStyle = '#eff4fa';
+  ctx.beginPath(); ctx.moveTo(PAD, footDividerY); ctx.lineTo(W - PAD, footDividerY); ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#b3c0d0';
+  ctx.font = '12px ' + FONT;
+  const ymd = now.getFullYear() + '.' + pad2(now.getMonth()+1) + '.' + pad2(now.getDate());
+  ctx.fillText('我的健康记录 · ' + ymd, W / 2, footDividerY + 28);
+
+  ctx.restore();
+
+  // 外描边
+  ctx.strokeStyle = 'rgba(27,118,236,.10)';
+  ctx.lineWidth = 2;
+  rr(ctx, 1, 1, W - 2, H - 2, 27);
+  ctx.stroke();
+}
+
+/* ================= 保存图片 ================= */
+const imgOverlay = $('imgOverlay');
+$('saveCard').addEventListener('click', () => {
+  drawCard();
+  const url = canvas.toDataURL('image/png');
+  $('savedImg').src = url;
+  const a = $('downloadBtn');
+  a.href = url;
+  a.download = '我的健康记录_' + todayKey() + '.png';
+  imgOverlay.classList.add('show');
+});
+$('imgClose').addEventListener('click', () => imgOverlay.classList.remove('show'));
+imgOverlay.addEventListener('click', (e) => { if(e.target === imgOverlay) imgOverlay.classList.remove('show'); });
+
+/* ================= 启动 ================= */
+load();
+renderAll();
+renderForm();
+
+/* 跨天自动刷新 */
+let lastKey = todayKey();
+setInterval(() => {
+  const k = todayKey();
+  if(k !== lastKey){ lastKey = k; renderAll(); renderForm(); }
+}, 30000);
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden){
+    const k = todayKey();
+    if(k !== lastKey){ lastKey = k; renderAll(); renderForm(); }
+  }
+});
+</script>
+</body>
+</html>
